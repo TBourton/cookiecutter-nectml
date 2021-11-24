@@ -1,5 +1,5 @@
 FROM {{ cookiecutter.docker_image }}
-LABEL maintainer="{{ cookiecutter.author_name }} <{{ cookiecutter.author_email }}>"
+LABEL maintainer="{{ cookiecutter.author_initials }} <{{ cookiecutter.author_email }}>"
 
 RUN useradd python -u 10001 --create-home --user-group
 WORKDIR /app
