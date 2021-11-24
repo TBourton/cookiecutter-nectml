@@ -1,1 +1,1 @@
-"""Client for {{ cookie_cutter.repo_name }}."""
+"""Client for {{ cookiecutter.repo_name }}."""

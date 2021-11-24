@@ -1,1 +1,1 @@
-"""Result for {{ cookie_cutter.repo_name }}."""
+"""Result for {{ cookiecutter.repo_name }}."""

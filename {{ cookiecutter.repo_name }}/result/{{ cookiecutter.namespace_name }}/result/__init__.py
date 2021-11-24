@@ -1,4 +1,4 @@
-"""Result functionality for {{ cookie_cutter.repo_name }}."""
+"""Result functionality for {{ cookiecutter.repo_name }}."""
 import pkg_resources
 
 try:

@@ -1,1 +1,1 @@
-"""Core for {{ cookie_cutter.repo_name }}."""
+"""Core for {{ cookiecutter.repo_name }}."""

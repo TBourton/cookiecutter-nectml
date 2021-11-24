@@ -1,1 +1,1 @@
-"""Flowpipe node(s) for {{ cookie_cutter.repo_name }}."""
+"""Flowpipe node(s) for {{ cookiecutter.repo_name }}."""
