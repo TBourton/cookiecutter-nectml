@@ -1,4 +1,7 @@
 ---
+{{ cookiecutter.namespace_name }}:
+  backpressure_semaphore_size: 9999
+
 logging:
   level: INFO
   format: legacy
