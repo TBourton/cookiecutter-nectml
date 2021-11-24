@@ -8,5 +8,4 @@
     "python_requires_version": "3.8",
     "docker_image": "harbor.int.svc.nect.com/nect-ml-images/nectml-tf-official:2.0.0",
     "gunicorn_port": 9999
-
 }
