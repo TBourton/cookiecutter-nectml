@@ -1,0 +1,6 @@
+**__pycache__/
+**.tox/
+**htmlcov
+**xunit2*
+**.hypothesis*
+**.egg-info

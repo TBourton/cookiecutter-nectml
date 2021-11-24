@@ -1,113 +1,84 @@
+"""Test creation."""
+# pylint: disable=no-member
+import glob
 import os
-import pytest
 from subprocess import check_output
-from conftest import system_check
+
+import pytest
+
+EXPECTED_PKGS = ['result', 'core', 'client', 'dev', 'service']
 
 
-def no_curlies(filepath):
-    """ Utility to make sure no curly braces appear in a file.
-        That is, was Jinja able to render everything?
+def dir_contents(dirname):
+    """Recurse directory for all files."""
+    contents = []
+    for root, dirs, files in os.walk(dirname):
+        contents += [os.path.join(root, file_) for file_ in files]
+        for dir_ in dirs:
+            contents += dir_contents(os.path.join(root, dir_))
+
+    return contents
+
+
+@pytest.mark.usefixtures("default_baked_repo")
+def test_repo_name(default_baked_repo):
+    """Test repo name."""
+    repo = default_baked_repo
+    if pytest.param.get('repo_name'):
+        assert repo.name == 'nect-cc'
+    else:
+        assert repo.name == 'repo-name'
+
+
+@pytest.mark.usefixtures("default_baked_repo")
+def test_namespace_name(default_baked_repo):
+    """Test namespace name."""
+    repo = default_baked_repo
+    ns_name = pytest.param.get('namespace_name', 'repo_name')
+    for pkg in EXPECTED_PKGS:
+        pkg_path = repo / pkg / ns_name / pkg
+        assert pkg_path.exists()
+
+
+@pytest.mark.usefixtures("default_baked_repo")
+def test_setup(default_baked_repo):
+    """Test setups."""
+    repo = default_baked_repo
+    for pkg in EXPECTED_PKGS:
+        wd = os.getcwd()
+        try:
+            os.chdir(str(repo / pkg))
+            args = ['python3', 'setup.py', '--version']
+            assert check_output(args).decode('ascii').strip() == "0.0.0"
+        except Exception:
+            assert False
+        finally:
+            os.chdir(wd)
+
+
+@pytest.mark.usefixtures("default_baked_repo")
+def test_no_curlies(default_baked_repo):
+    """Check curly braces appear in a file.
+
+    That is, was Jinja able to render everything?
+
     """
-    with open(filepath, 'r') as f:
-        data = f.read()
+    repo = default_baked_repo
+    ignored_files = ['.drone.yml']
+    template_strings = ['{{', '}}', '{%', '%}']
+    files = dir_contents(repo)
+    files = [x for x in files if not any(v in x for v in ignored_files)]
 
-    template_strings = [
-        '{{',
-        '}}',
-        '{%',
-        '%}'
-    ]
-
-    template_strings_in_file = [s in data for s in template_strings]
-    return not any(template_strings_in_file)
+    for file_ in files:
+        with open(file_) as file_:
+            data = file_.read()
+            assert not any(s in data for s in template_strings)
 
 
-@pytest.mark.usefixtures("default_baked_project")
-class TestCookieSetup(object):
-    def test_project_name(self):
-        project = self.path
-        if pytest.param.get('project_name'):
-            name = system_check('DrivenData')
-            assert project.name == name
-        else:
-            assert project.name == 'project_name'
-
-    def test_author(self):
-        setup_ = self.path / 'setup.py'
-        args = ['python', str(setup_), '--author']
-        p = check_output(args).decode('ascii').strip()
-        if pytest.param.get('author_name'):
-            assert p == 'DrivenData'
-        else:
-            assert p == 'Your name (or your organization/company/team)'
-
-    def test_readme(self):
-        readme_path = self.path / 'README.md'
-        assert readme_path.exists()
-        assert no_curlies(readme_path)
-        if pytest.param.get('project_name'):
-            with open(readme_path) as fin:
-                assert 'DrivenData' == next(fin).strip()
-
-    def test_setup(self):
-        setup_ = self.path / 'setup.py'
-        args = ['python', str(setup_), '--version']
-        p = check_output(args).decode('ascii').strip()
-        assert p == '0.1.0'
-
-    def test_license(self):
-        license_path = self.path / 'LICENSE'
-        assert license_path.exists()
-        assert no_curlies(license_path)
-
-    def test_license_type(self):
-        setup_ = self.path / 'setup.py'
-        args = ['python', str(setup_), '--license']
-        p = check_output(args).decode('ascii').strip()
-        if pytest.param.get('open_source_license'):
-            assert p == 'BSD-3'
-        else:
-            assert p == 'MIT'
-
-    def test_requirements(self):
-        reqs_path = self.path / 'requirements.txt'
-        assert reqs_path.exists()
-        assert no_curlies(reqs_path)
-        if pytest.param.get('python_interpreter'):
-            with open(reqs_path) as fin:
-                lines = list(map(lambda x: x.strip(), fin.readlines()))
-            assert 'pathlib2' in lines
-
-    def test_makefile(self):
-        makefile_path = self.path / 'Makefile'
-        assert makefile_path.exists()
-        assert no_curlies(makefile_path)
-
-    def test_folders(self):
-        expected_dirs = [
-            'data',
-            'data/external',
-            'data/interim',
-            'data/processed',
-            'data/raw',
-            'docs',
-            'models',
-            'notebooks',
-            'references',
-            'reports',
-            'reports/figures',
-            'src',
-            'src/data',
-            'src/features',
-            'src/models',
-            'src/visualization',
-        ]
-
-        ignored_dirs = [
-            str(self.path)
-        ]
-
-        abs_expected_dirs = [str(self.path / d) for d in expected_dirs]
-        abs_dirs, _, _ = list(zip(*os.walk(self.path)))
-        assert len(set(abs_expected_dirs + ignored_dirs) - set(abs_dirs)) == 0
-
+def test_drone(default_baked_repo):
+    """Test only one drone."""
+    repo = default_baked_repo
+    contents = dir_contents(repo)
+    drones = [x for x in contents if '.drone' in x]
+    assert len(drones) == 1
+    assert (repo / ".drone.yml").exists()

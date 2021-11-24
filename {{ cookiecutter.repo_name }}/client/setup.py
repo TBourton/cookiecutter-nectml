@@ -3,10 +3,7 @@
 import os
 from setuptools import find_namespace_packages, setup
 
-version = os.environ.get(
-    "{{ cookiecutter.namespace_name.upper().replace('_', '') }}_VERSION",
-    "0.0.0"
-)
+version = os.environ.get("{{ cookiecutter.namespace_name.upper() }}_VERSION", "0.0.0")
 
 setup(
     name="{{ cookiecutter.namespace_name }}.client",
