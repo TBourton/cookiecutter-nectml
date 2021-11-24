@@ -1,0 +1,28 @@
+---
+version: 1
+disable_existing_loggers: false
+formatters:
+    simple:
+        format: "%(asctime)s - %(levelname)s -[%(name)s-%(funcName)s]  %(message)s"
+    legacy:
+        format: "%(message)s"
+    json:
+        format: "%(message)s%(levelname)s%(name)s%(asctime)s%(funcName)s%(pathname)s"
+        class: nectlog.custom_json_formatter.CustomJsonFormatter
+
+handlers:
+    console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: legacy
+        stream: ext://sys.stdout
+
+loggers:
+    common:
+        level: DEBUG
+        handlers: [console]
+        propagate: false
+
+root:
+    level: INFO
+    handlers: [console]
