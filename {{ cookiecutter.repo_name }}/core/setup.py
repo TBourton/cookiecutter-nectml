@@ -11,12 +11,12 @@ version = os.environ.get(
 setup(
     name="{{ cookiecutter.namespace_name }}.core",
     version=version,
-    description="{{ cookiecutter.project_name }} core functionality",
+    description="{{ cookiecutter.description_name }} core functionality",
     packages=find_namespace_packages(
         include=["{{ cookiecutter.namespace_name }}.*"]
     ),
     namespace_packages=["{{ cookiecutter.namespace_name }}"],
-    python_requires=">={{ cookiecutter.python_requires }}",
+    python_requires=">={{ cookiecutter.python_requires_version }}",
     install_requires=[
         f"{{ cookiecutter.namespace_name }}.result>={version}"
         if version != "0.0.0" else "{{ cookiecutter.namespace_name }}.result"

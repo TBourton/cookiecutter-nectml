@@ -1,6 +1,7 @@
 {
     "repo_name": "repo-name",
     "namespace_name": "{{ cookiecutter.repo_name.lower().replace(' ', '_').replace('-', '_') }}",
+    "description_name": "{{ cookiecutter.repo_name.replace('_', ' ').replace('-', ' ').capitalize() }}",
     "author_name": "Your name (or your organization/company/team)",
     "description": "A short description of the project.",
     "python_requires_version": "3.8"
