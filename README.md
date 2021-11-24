@@ -6,7 +6,7 @@ _Nect CVML template service layout._
 ### Requirements to use the cookiecutter template:
 -----------
  - Python 3.5+
- - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0: This can be installed with pip by or conda depending on how you manage your Python packages:
+ - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0
 
 ``` bash
 $ pip install cookiecutter
@@ -28,3 +28,8 @@ $ pip install cookiecutter
 ------------
 
     py.test tests
+
+
+### Acknowledgments
+------------
+This project was forked from [Cookiecutter Data Science](https://github.com/drivendata/cookiecutter-data-science)
