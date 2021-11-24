@@ -1,6 +1,6 @@
 # Cookiecutter Data Science
 
-_Nect CVML teamplate service layout._
+_Nect CVML template service layout._
 
 
 ### Requirements to use the cookiecutter template:
