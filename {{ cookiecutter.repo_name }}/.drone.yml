@@ -1,0 +1,462 @@
+---
+kind: pipeline
+name: default
+
+workspace:
+    base: /drone
+    path: src/bitbucket.org/nectwork/${DRONE_REPO_NAME}/
+
+global:
+
+  # individual per project
+  default_step_image: &default_step_image harbor.int.svc.nect.com/nect-ml-images/nectml-tf-official-dev:2.0.0
+  default_kubectl_image: &default_kubectl_image harbor.int.svc.nect.com/ci/helm-kubectl:2.11.0-4
+  default_deploy_image: &default_deploy_image harbor.int.svc.nect.com/ci/deploy:0.0.10
+  default_checkpoint_image: &default_checkpoint_image harbor.int.svc.nect.com/hub.docker.com-proxy/library/alpine
+
+  project_version: &project_version {{ cookiecutter.namespace_name.upper() }}_VERSION
+  project_coverage: &project_coverage {{ cookiecutter.namespace_name }}
+
+  sparse_resources: &sparse_resources
+    limits:
+      cpu: 2
+      memory: 2GiB
+    requests:
+      cpu: 1
+      memory: 1GiB
+
+  test_resources: &test_resources
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
+
+  # shared among service projects
+  default_volumes: &shared_volumes
+    - name: pythonuserbase
+      path: /drone/pip/
+    - name: xdg-cache
+      path: /cache/xdg
+
+  dockersock_volumes: &dockersock_volumes
+    - name: dockersock
+      path: /var/run
+
+  test_environment: &test_environment
+    DEBIAN_FRONTEND: 'noninteractive'
+    PIP_DEFAULT_TIMEOUT: '100'
+    PIP_INDEX_URL: https://nexus.int.svc.nect.com/repository/pypi-group/simple
+    PYTHONUSERBASE: /drone/pip/
+    NECTML_DIR_COVERAGE: *project_coverage
+    RKTHOOK:
+      from_secret: rktwriteurl
+    PROJECT_NAME: ${DRONE_REPO_NAME}
+
+  wheel_environment: &wheel_environment
+    PIP_DEFAULT_TIMEOUT: '100'
+    CI_USER:
+      from_secret: ci_user
+    CI_PASSWORD:
+      from_secret: ci_password
+    PYTHONUSERBASE: /drone/pip/
+    XDG_CACHE_HOME: '/cache/xdg'
+    PROJECT_VERSION: *project_version
+
+image_pull_secrets:
+  - dockerconfigjson
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run
+  - name: pythonuserbase
+    temp: {}
+  - name: xdg-cache
+    host:
+      path: /cache/xdg
+  - name: git-cache
+    host:
+      path: /cache/git
+
+
+steps:
+  - name: helm-lint
+    image: 'harbor.int.svc.nect.com/ci/helmlint:0.0.1'
+
+  - name: test-deps
+    image: *default_step_image
+    resources: *sparse_resources
+    environment:
+      PIP_DEFAULT_TIMEOUT: '100'
+      PIP_INDEX_URL: https://nexus.int.svc.nect.com/repository/pypi-group/simple
+      RKTHOOK:
+        from_secret: rktwriteurl
+    volumes: *shared_volumes
+    commands:
+      - 'mkdir -p /tmp/container'
+      - 'python3 -m pip freeze > /tmp/container/requirements.txt'
+      - 'cat /tmp/container/requirements.txt'
+      - 'python3 -m pip install nectml_requirements_consistency'
+      - 'nectml-requirements-consistency /tmp/container client core result service'
+
+  - name: deps
+    image: *default_step_image
+    resources: *sparse_resources
+    environment:
+      DEBIAN_FRONTEND: 'noninteractive'
+      PIP_DEFAULT_TIMEOUT: '100'
+      PIP_INDEX_URL: https://nexus.int.svc.nect.com/repository/pypi-group/simple
+      PYTHONUSERBASE: /drone/pip/
+      PIP_ARGS: '--user'
+      XDG_CACHE_HOME: '/cache/xdg'
+      PROJECT_VERSION: *project_version
+    volumes: *shared_volumes
+    commands:
+      - 'export $PROJECT_VERSION=${DRONE_TAG##v}'
+      - 'pip install $PIP_ARGS nectml_drone_wrapper'
+      - 'python3 -m pip install $PIP_ARGS -r requirements-dev.txt'
+      - 'python3 -m pip install $PIP_ARGS -r result/requirements.txt'
+      - 'python3 -m pip install $PIP_ARGS -r core/requirements.txt'
+      - 'python3 -m pip install $PIP_ARGS -r client/requirements.txt'
+      - 'python3 -m pip install $PIP_ARGS -r service/requirements.txt'
+      - 'cd result && pip install $PIP_ARGS . && cd ..'
+      - 'cd core  && pip install $PIP_ARGS . && cd ..'
+      - 'cd client && pip install $PIP_ARGS . && cd ..'
+      - 'pip list'
+
+  - name: test-result
+    image: *default_step_image
+    resources: *test_resources
+    environment: *test_environment
+    volumes: *shared_volumes
+    depends_on:
+      - deps
+    commands:
+      - 'PATH=$PYTHONUSERBASE/bin/:$PATH nectml-drone-wrapper result'
+
+  - name: test-core
+    image: *default_step_image
+    resources: *test_resources
+    environment: *test_environment
+    volumes: *shared_volumes
+    depends_on:
+      - deps
+    commands:
+      - 'PATH=$PYTHONUSERBASE/bin/:$PATH nectml-drone-wrapper core'
+
+  - name: test-client
+    image: *default_step_image
+    resources: *test_resources
+    environment: *test_environment
+    volumes: *shared_volumes
+    depends_on:
+      - deps
+    commands:
+      - 'PATH=$PYTHONUSERBASE/bin/:$PATH nectml-drone-wrapper client'
+
+  - name: test-service
+    image: *default_step_image
+    resources: *test_resources
+    environment: *test_environment
+    volumes: *shared_volumes
+    depends_on:
+      - deps
+    commands:
+      - 'PATH=$PYTHONUSERBASE/bin/:$PATH nectml-drone-wrapper service'
+
+  - name: build-wheel
+    image: harbor.int.svc.nect.com/nect-ml-images/nectml-cv:0.11.0-dev
+    resources: *sparse_resources
+    environment: *wheel_environment
+    volumes: *shared_volumes
+    depends_on:
+      - deps
+    commands:
+      - 'export $PROJECT_VERSION=${DRONE_TAG##v}'
+      - 'export SOURCE_DATE_EPOCH=315532800'
+      - 'cd result && $${PYTHON_BIN} setup.py bdist_wheel && cd ..'
+      - 'cd core && $${PYTHON_BIN} setup.py bdist_wheel && cd ..'
+      - 'cd client && $${PYTHON_BIN} setup.py bdist_wheel && cd ..'
+      - 'mkdir -p service/deps/core'
+      - 'mkdir -p service/deps/result'
+      - 'cp result/dist/*.whl service/deps/result/'
+      - 'cp core/dist/*.whl service/deps/core/'
+
+  - name: docker-build
+    image: harbor.int.svc.nect.com/ci/dockerbuild:0.0.2
+    resources: *sparse_resources
+    volumes: *dockersock_volumes
+    depends_on:
+      - build-wheel
+    settings:
+      dockerconfigjson:
+        from_secret: dockerconfigjson
+      subdir: './service'
+
+  - name: helm-push
+    image: harbor.int.svc.nect.com/ci/helmpush:0.0.9
+    resources: *sparse_resources
+    depends_on:
+      - helm-lint
+      - docker-build
+    settings:
+      passwordint:
+        from_secret: helm_passwordint
+      passwordprod:
+        from_secret: helm_passwordprod
+
+  - name: docker-push
+    image: harbor.int.svc.nect.com/ci/dockerpush:0.0.3
+    resources: *sparse_resources
+    volumes: *dockersock_volumes
+    depends_on:
+      - docker-build
+    settings:
+      dockerconfigjson:
+        from_secret: dockerconfigjson
+
+  - name: gitcrypt-unlock
+    image: harbor.int.svc.nect.com/ci/unlock:0.0.2
+    settings:
+      key:
+        from_secret: gitcrypt_key
+
+  - name: deploy-e2e
+    image: *default_deploy_image
+    resources: *sparse_resources
+    depends_on:
+      - docker-push
+      - helm-push
+      - gitcrypt-unlock
+    settings:
+      kubeconfig:
+        from_secret: kubeconfig
+      environment: e2e
+      passwordint:
+        from_secret: helm_passwordint
+
+  - name: test-e2e
+    image: *default_step_image
+    environment:
+      PYTHONUSERBASE: /drone/pip/
+      PROJECT_NAME: ${DRONE_REPO_NAME}
+    resources: *test_resources
+    volumes: *shared_volumes
+    depends_on:
+      - deploy-e2e
+    commands:
+      - 'cd ./integration_test/'
+      - 'export SVC_ADDRESS=http://$PROJECT_NAME-e2e-$DRONE_BUILD_NUMBER.$PROJECT_NAME-e2e-$DRONE_BUILD_NUMBER'
+      - '$PYTHONUSERBASE/bin/pytest --junitxml=xunit2-integration_e2e.xml -o junit_family=xunit2 -vv test_e2e.py'
+
+  - name: CHECKPOINT_TESTS_OK
+    image: *default_checkpoint_image
+    depends_on:
+      - test-result
+      - test-core
+      - test-client
+      - test-service
+      - test-e2e
+
+  - name: cleanup-e2e
+    image: harbor.int.svc.nect.com/ci/cleanup:0.0.1
+    when:
+      status: [ failure, success ]
+    depends_on:
+      - CHECKPOINT_TESTS_OK
+    settings:
+      kubeconfig:
+        from_secret: kubeconfig
+      environment: 'e2e'
+      purge: 'true'
+
+  - name: CHECKPOINT_DEPLOYABLE
+    image: *default_checkpoint_image
+    depends_on:
+      - helm-push
+      - docker-push
+      - CHECKPOINT_TESTS_OK
+
+  - name: push-wheel
+    image: harbor.int.svc.nect.com/nect-ml-images/nectml-cv:0.11.0-dev
+    resources: *sparse_resources
+    environment: *wheel_environment
+    volumes: *shared_volumes
+    depends_on:
+      - CHECKPOINT_DEPLOYABLE
+    when:
+      event:
+        - tag
+    commands:
+      - 'export $PROJECT_VERSION=${DRONE_TAG##v}'
+      - '$${PYTHON_BIN} -m pip install twine'
+      - '$${PYTHON_BIN} -m twine upload --verbose --repository-url https://nexus.int.svc.nect.com/repository/pypi-hosted/ result/dist/* --username $CI_USER --password $CI_PASSWORD'
+      - '$${PYTHON_BIN} -m twine upload --verbose --repository-url https://nexus.int.svc.nect.com/repository/pypi-hosted/ core/dist/* --username $CI_USER --password $CI_PASSWORD'
+      - '$${PYTHON_BIN} -m twine upload --verbose --repository-url https://nexus.int.svc.nect.com/repository/pypi-hosted/ client/dist/* --username $CI_USER --password $CI_PASSWORD'
+
+  - name: cleanup-dev
+    image: harbor.int.svc.nect.com/ci/cleanup:0.0.1
+    when:
+      branch: develop
+    depends_on:
+      - CHECKPOINT_DEPLOYABLE
+    settings:
+      kubeconfig:
+        from_secret: kubeconfig
+      environment: 'dev'
+      purge: 'true'
+
+  - name: deploy-dev
+    image: *default_deploy_image
+    resources: *sparse_resources
+    depends_on:
+      - CHECKPOINT_DEPLOYABLE
+      - cleanup-dev
+    when:
+      branch: develop
+    settings:
+      kubeconfig:
+        from_secret: kubeconfig
+      environment: dev
+      passwordint:
+        from_secret: helm_passwordint
+
+  - name: test-e2e-dev
+    image: *default_step_image
+    environment: *test_environment
+    resources: *test_resources
+    when:
+      branch: develop
+    depends_on:
+      - deploy-dev
+    volumes:
+      - name: pythonuserbase
+        path: /drone/pip/
+    commands:
+      - 'PATH=$PYTHONUSERBASE/bin/:$PATH SVC_ADDRESS=http://$PROJECT_NAME-dev.$PROJECT_NAME-dev pytest --junitxml=integration_test/xunit2-integration_e2e_dev.xml -o junit_family=xunit2 -rA integration_test/'
+
+  - name: deploy-int
+    image: *default_deploy_image
+    resources: *sparse_resources
+    depends_on:
+      - CHECKPOINT_DEPLOYABLE
+    when:
+      event: tag
+    settings:
+      kubeconfig:
+        from_secret: kubeconfig
+      environment: int
+      passwordint:
+        from_secret: helm_passwordint
+
+  - name: CHECKPOINT_DONE
+    image: *default_checkpoint_image
+    depends_on:
+      - push-wheel
+      - deploy-int
+      - test-e2e-dev
+      - cleanup-e2e
+
+  - name: xunit-repo
+    image: harbor.int.svc.nect.com/ci/xunit-repo-client:0.0.4
+    resources: *sparse_resources
+    volumes: *shared_volumes
+    depends_on:
+      - CHECKPOINT_DONE
+    when:
+      status: [ success, failure ]
+    commands:
+      - 'set +e'
+      - 'export BRANCH=$DRONE_COMMIT_BRANCH'
+      - 'echo $BRANCH'
+      - 'if test "$DRONE_BUILD_EVENT" = "tag" ; then export BRANCH="tag" ; fi'
+      - 'echo $BRANCH'
+      - 'export RUN_ID="${DRONE_BUILD_CREATED}_${DRONE_BUILD_NUMBER}"'
+      - 'xunit-repo-client --env BRANCH --project-identifier $DRONE_REPO --run-identifier $RUN_ID --url https://xunit-repo.int.svc.nect.com:443 --xunit */xunit2*xml'
+      - 'echo return code=$?'
+
+  - name: notify
+    image: harbor.int.svc.nect.com/ci/drone-slack-plugin:latest
+    resources: *sparse_resources
+    depends_on:
+      - CHECKPOINT_DONE
+    secrets:
+      - slack_token
+      - slack_webhook
+    when:
+      status: [ success, failure ]
+    token:
+      from_secret: slack_token
+    settings:
+      webhook:
+        from_secret: slack_webhook
+      channel: '#builds'
+      username: drone
+      icon_emoji: ':construction:'
+      template: >
+        {{#success build.status}}
+          ✅ *SUCCESS* {{build.author}} _{{repo.name}}_ <{{build.link}} #{{build.number}}> <https://bitbucket.org/nectwork/{{repo.name}}/commits/{{build.commit}}> ✅
+        {{else}}
+          🚨 *FAIL* {{build.author}} _{{repo.name}}_ <{{build.link}} #{{build.number}}> <https://bitbucket.org/nectwork/{{repo.name}}/commits/{{build.commit}}> 🚨
+        {{/success}}
+
+  - name: notify-release-prepare
+    image: *default_kubectl_image
+    resources: *sparse_resources
+    depends_on:
+      - CHECKPOINT_DONE
+    when:
+      event:
+        - tag
+    commands:
+      - 'git fetch'
+      - 'echo "{{build.author}} published tag *${DRONE_TAG}* of *${DRONE_REPO_NAME}*" > ___RELEASENOTES___'
+      - 'echo "" >> ___RELEASENOTES___'
+      - 'echo "See: https://bitbucket.org/nectwork/${DRONE_REPO_NAME}/src/${DRONE_TAG}/" >> ___RELEASENOTES___'
+      - 'echo "" >> ___RELEASENOTES___'
+      - 'echo "*Summary:*" >> ___RELEASENOTES___'
+      - 'git show ${DRONE_TAG} -s --format='''' | sed ''1,3d'' >> ___RELEASENOTES___'
+
+  - name: notify-cvml
+    image: harbor.int.svc.nect.com/ci/drone-slack-plugin:latest
+    secrets:
+      - slack_token
+      - slack_webhook
+    when:
+      status: failure
+      branch: develop
+    token:
+      from_secret: slack_token
+    depends_on:
+      - CHECKPOINT_DONE
+    settings:
+      webhook:
+        from_secret: slack_webhook
+      channel: '#cv-ml'
+      username: drone
+      icon_emoji: ':construction:'
+      template: >
+          🚨 *FAIL* {{build.author}} _{{repo.name}}_ <{{build.link}} #{{build.number}}> <https://bitbucket.org/nectwork/{{repo.name}}/commits/{{build.commit}}> 🚨
+
+  - name: notify-release-execute
+    image: harbor.int.svc.nect.com/ci/drone-slack-plugin:latest
+    resources: *sparse_resources
+    depends_on:
+      - notify-release-prepare
+    when:
+      event:
+        - tag
+    token:
+      from_secret: slack_token
+    settings:
+      webhook:
+        from_secret: slack_webhook
+      channel: '#releasenotes'
+      username: drone
+      icon_emoji: ':tada:'
+      template: file:///drone/src/bitbucket.org/nectwork/${DRONE_REPO_NAME}/___RELEASENOTES___
+
+node:
+  type: build

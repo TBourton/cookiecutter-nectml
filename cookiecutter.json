@@ -1,7 +1,7 @@
 {
     "repo_name": "repo-name",
     "namespace_name": "{{ cookiecutter.repo_name.lower().replace(' ', '_').replace('-', '_') }}",
-    "description_name": "{{ cookiecutter.repo_name.replace('_', ' ').replace('-', ' ').capitalize() }}",
+    "description_name": "{{ cookiecutter.repo_name.replace('_', ' ').replace('-', ' ').title() }}",
     "author_name": "Your name (or your organization/company/team)",
     "author_email": "{{ cookiecutter.author_name }}@nect.com",
     "description": "A short description of the project.",
