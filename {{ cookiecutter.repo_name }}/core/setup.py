@@ -15,6 +15,7 @@ setup(
     namespace_packages=["{{ cookiecutter.namespace_name }}"],
     python_requires=">={{ cookiecutter.python_requires_version }}",
     install_requires=[
+        # TODO: core/setup.py install_requires
         f"{{ cookiecutter.namespace_name }}.result>={version}"
         if version != "0.0.0" else "{{ cookiecutter.namespace_name }}.result"
     ]

@@ -1,4 +1,7 @@
 """Script to launch a http web server for {{ cookiecutter.namespace_name }}."""
+
+# TODO: Check app.py (remove me if good.)
+
 import os
 
 import nectml_flaskutils

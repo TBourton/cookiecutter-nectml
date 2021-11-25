@@ -1,4 +1,4 @@
-"""Setup for the {{ cookiecutter.namespace_name }}.core package."""
+"""Setup for the {{ cookiecutter.namespace_name }}.result package."""
 
 import os
 from setuptools import find_namespace_packages, setup
@@ -14,4 +14,7 @@ setup(
     ),
     namespace_packages=["{{ cookiecutter.namespace_name }}"],
     python_requires=">={{ cookiecutter.python_requires_version }}",
+    install_requires=[
+        # TODO: result/setup.py install_requires
+    ]
 )

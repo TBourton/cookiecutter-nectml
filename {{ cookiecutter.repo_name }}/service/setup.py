@@ -24,6 +24,6 @@ setup(
         if version != "0.0.0" else "{{ cookiecutter.namespace_name }}.result",
         f"{{ cookiecutter.namespace_name }}.core>={version}"
         if version != "0.0.0" else "{{ cookiecutter.namespace_name }}.core"
-
+        # TODO: service/setup.py install_requires
     ]
 )

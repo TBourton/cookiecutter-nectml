@@ -10,3 +10,8 @@
 cat .drone_templateable.yml .drone_non_templateable.yml > .drone.yml
 rm .drone_templateable.yml
 rm .drone_non_templateable.yml
+
+# We add TODO's in places that we cannot template nicely
+# In post make a simple grep to point user to these.
+echo "Listing TODO items ..."
+grep -r "TODO:"

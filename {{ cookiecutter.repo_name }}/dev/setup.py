@@ -13,4 +13,7 @@ setup(
         include=["{{ cookiecutter.namespace_name }}.*"]
     ),
     namespace_packages=["{{ cookiecutter.namespace_name }}"],
+    install_requires=[
+        # TODO: dev/setup.py install_requires
+    ]
 )
