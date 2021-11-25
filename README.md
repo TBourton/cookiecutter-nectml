@@ -32,4 +32,4 @@ $ pip install cookiecutter
 
 ### Acknowledgments
 ------------
-This project was forked from [Cookiecutter Data Science](https://github.com/drivendata/cookiecutter-data-science)
+This project was originally forked from [Cookiecutter Data Science](https://github.com/drivendata/cookiecutter-data-science).
