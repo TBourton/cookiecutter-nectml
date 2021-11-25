@@ -1,0 +1,4 @@
+apiVersion: v1
+name: {{ cookiecutter.repo_name }}
+description: {{ cookiecutter.description }}
+version: 0.1.0 # This will automatically be updated by the CI depending of the git tag.
