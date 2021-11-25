@@ -66,6 +66,8 @@ nect-cc
 │   │       └── __init__.py
 │   ├── requirements.txt
 │   └── setup.py
+├── .drone.yml
+├── .gitignore
 ├── integration_test
 │   ├── conftest.py
 │   ├── README.md
@@ -83,6 +85,7 @@ nect-cc
 │   └── tox.ini
 ├── service
 │   ├── Dockerfile
+│   ├── .dockerignore
 │   ├── gunicorn.conf.py
 │   ├── logging.yaml
 │   ├── nect_cc
