@@ -19,9 +19,9 @@ $ pip install cookiecutter
 
 That will prompt you to enter the following:
 
-    repo_name: Name for the repository, e.g. 'cat-detector'
-    namespace_name: Name for the python packages. e.g. 'cat_detector'. This will create packages cat_detector.result, cat_detector.core, etc.
-    description_name: Title for setup.py descriptions. e.g. Cat Detector.
+    repo_name: Name for the repository, e.g. 'nect-cc'
+    namespace_name: Name for the python packages. e.g. 'nect_cc'. This will create packages nect_cc.result, nect_cc.core, etc.
+    description_name: Title for setup.py descriptions. e.g. Nect CC.
     author_initials: Initials of the author, e.g. 'tb'.
     author_email: mailing address, e.g. 'tb@madeup.com',
     description: Short description of the project.
@@ -29,6 +29,83 @@ That will prompt you to enter the following:
     docker_image: base docker image to use, e.g. 'python:3.8.11-slim-buster'
     gunicorn_port: Port to use for gunicorn, e.g. 9999
 
+
+### The Resulting Directory Structure
+------------------------
+
+The directory structure of the new project (run with the above inputs) looks like this: 
+```
+nect-cc
+├── CHANGES.txt
+├── charts
+│   └── nect-cc
+│       ├── Chart.yaml
+│       ├── templates
+│       │   └── TODO.yaml
+│       └── values.yaml
+├── client
+│   ├── nect_cc
+│   │   └── client
+│   │       ├── client.py
+│   │       ├── __init__.py
+│   │       └── node.py
+│   ├── requirements.txt
+│   ├── setup.py
+│   └── tox.ini
+├── core
+│   ├── nect_cc
+│   │   └── core
+│   │       ├── core.py
+│   │       └── __init__.py
+│   ├── requirements.txt
+│   ├── setup.py
+│   └── tox.ini
+├── dev
+│   ├── nect_cc
+│   │   └── dev
+│   │       └── __init__.py
+│   ├── requirements.txt
+│   └── setup.py
+├── integration_test
+│   ├── conftest.py
+│   ├── README.md
+│   └── test_e2e.py
+├── Makefile
+├── README.md
+├── requirements-dev.txt
+├── result
+│   ├── nect_cc
+│   │   └── result
+│   │       ├── __init__.py
+│   │       └── result.py
+│   ├── requirements.txt
+│   ├── setup.py
+│   └── tox.ini
+├── service
+│   ├── Dockerfile
+│   ├── gunicorn.conf.py
+│   ├── logging.yaml
+│   ├── nect_cc
+│   │   └── service
+│   │       ├── api.py
+│   │       ├── app.py
+│   │       ├── __init__.py
+│   │       └── jlgeh.py
+│   ├── nect_cc.yaml
+│   ├── requirements.txt
+│   ├── setup.py
+│   ├── tests
+│   │   └── pytest.ini
+│   └── tox.ini
+└── values
+    ├── dev.yaml
+    ├── e2e.yaml
+    ├── int.yaml
+    ├── prod.yaml
+    ├── secrets
+    │   └── TODO.yaml.crypt
+    └── test.yaml
+```
 
 ### Installing development requirements
 ------------
