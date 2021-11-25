@@ -1,4 +1,4 @@
-# Cookiecutter Data Science
+# Cookiecutter NectML
 
 _Nect CVML template service layout._
 
