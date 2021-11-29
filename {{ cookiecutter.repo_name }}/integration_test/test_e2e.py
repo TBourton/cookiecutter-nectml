@@ -1,4 +1,5 @@
 """Run end-to-end tests for {{ cookiecutter.namespace_name }}."""
+# pylint: disable=redefined-outer-name
 # TODO: Write e2e tests.
 import requests
 

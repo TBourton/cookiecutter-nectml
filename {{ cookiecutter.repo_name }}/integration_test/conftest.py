@@ -1,5 +1,6 @@
 """Configure end-to-end test env."""
 import os
+
 import pytest
 
 DEFAULT_CLIENT_TIMEOUT = 60
