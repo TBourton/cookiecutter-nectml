@@ -1,4 +1,6 @@
 """Tests for {{ cookiecutter.namespace_name }}.client.client."""
+# TODO: Write client tests.
+
 # pylint: disable=redefined-outer-name
 import time
 
